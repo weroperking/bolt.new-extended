@@ -22,7 +22,7 @@ A feature-rich fork of [bolt.new](https://github.com/stackblitz/bolt.new) that e
   - Fixed file editor scrollbar functionality
   - Intelligent error detection with one-click fixes via toast notifications
   - Project export as ZIP
-  - Direct GitHub project publishing
+  - Direct GitHub project publishing with auto-generated README
 
 ## Feature Status
 
@@ -33,6 +33,7 @@ A feature-rich fork of [bolt.new](https://github.com/stackblitz/bolt.new) that e
 - [x] Smart error detection and fix suggestions
 - [x] Project export as ZIP
 - [x] GitHub project publishing
+- [x] Auto-generated README for GitHub projects
 
 ### Planned Features 🚧
 - [ ] Improved prompts for consistent WebContainer triggering across LLMs
