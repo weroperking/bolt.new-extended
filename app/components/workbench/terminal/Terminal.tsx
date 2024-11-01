@@ -10,6 +10,7 @@ const logger = createScopedLogger('Terminal');
 
 export interface TerminalRef {
   reloadStyles: () => void;
+  writeMessage: (message: string) => void;
 }
 
 export interface TerminalProps {
@@ -78,6 +79,10 @@ export const Terminal = memo(
           const terminal = terminalRef.current!;
           terminal.options.theme = getTerminalTheme(readonly ? { cursor: '#00000000' } : {});
         },
+        writeMessage: (message: string) => {
+          const terminal = terminalRef.current!;
+          terminal.write(message + '\r\n');
+        }
       };
     }, []);
 

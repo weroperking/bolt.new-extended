@@ -9,6 +9,7 @@ import { EditorStore } from './editor';
 import { FilesStore, type FileMap } from './files';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
+import JSZip from 'jszip';
 
 export interface ArtifactState {
   id: string;
@@ -45,6 +46,51 @@ export class WorkbenchStore {
       import.meta.hot.data.currentView = this.currentView;
     }
   }
+
+  downloadProject() {
+    const files = this.#filesStore.files.get();
+
+    if (!files || Object.keys(files).length === 0) {
+      console.error("No files to download.");
+      return;
+    }
+
+    const zip = new JSZip();
+
+    for (const [filePath, file] of Object.entries(files)) {
+      if (file && file.type === 'file') {
+        let content: string | Uint8Array = file.content;
+        if (file.isBinary) {
+          try {
+            const binaryString = atob(content);
+            const binaryLen = binaryString.length;
+            const bytes = new Uint8Array(binaryLen);
+            for (let i = 0; i < binaryLen; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            content = bytes;
+          } catch (error) {
+            console.error("Error decoding binary content for file:", filePath, error);
+          }
+        }
+
+        const relativePath = filePath.replace(/^\/home\/project\//, "");
+        zip.file(relativePath, content);
+      } else {
+        console.warn("Skipping undefined or non-file type:", filePath);
+      }
+    }
+
+    zip.generateAsync({ type: 'base64' }).then((base64) => {
+      const a = document.createElement('a');
+      a.href = "data:application/zip;base64," + base64;
+      a.download = 'project.zip';
+      a.click();
+    }).catch((err) => {
+      console.error("Error generating zip file:", err);
+    });
+  }
+
 
   get previews() {
     return this.#previewsStore.previews;

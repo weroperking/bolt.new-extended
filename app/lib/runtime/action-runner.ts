@@ -5,6 +5,7 @@ import type { BoltAction } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
+import { eventBus } from '~/lib/events';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -136,15 +137,48 @@ export class ActionRunner {
       process.kill();
     });
 
+    const errorMessages: string[] = [];
+    let errorTimeout: NodeJS.Timeout | null = null;
+
+    const sendErrors = () => {
+      if (errorMessages.length > 0) {
+        console.error('errorMessages', errorMessages);
+        eventBus.emit('webcontainer-error', {
+          type: 'error',
+          messages: [...errorMessages]
+        });
+        errorMessages.length = 0;
+      }
+    };
+
     process.output.pipeTo(
       new WritableStream({
         write(data) {
-          console.log(data);
-        },
+          eventBus.emit('webcontainer-console', {
+            message: data
+          });
+
+          let deAnsi = data.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-ntqry=><]/g, '');
+          if (deAnsi.startsWith('- error')) {
+            //check has same error message
+            if (!errorMessages.includes(deAnsi.trim())) errorMessages.push(deAnsi.trim());
+
+            if (errorTimeout) {
+              clearTimeout(errorTimeout);
+            }
+
+            errorTimeout = setTimeout(sendErrors, 10000);
+          }
+        }
       }),
     );
 
     const exitCode = await process.exit;
+
+    if (errorTimeout) {
+      clearTimeout(errorTimeout);
+    }
+    sendErrors();
 
     logger.debug(`Process terminated with code ${exitCode}`);
   }

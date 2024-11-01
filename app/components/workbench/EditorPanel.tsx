@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels';
+import * as ScrollArea from "@radix-ui/react-scroll-area";
 import {
   CodeMirrorEditor,
   type EditorDocument,
@@ -131,16 +132,37 @@ export const EditorPanel = memo(
                 <PanelHeader>
                   <div className="i-ph:tree-structure-duotone shrink-0" />
                   Files
+
+                  <PanelHeaderButton
+                    className="ml-auto"
+                    onClick={() => {
+                      workbenchStore.downloadProject();
+                    }}
+                  >
+                    <div className="i-ph:download-duotone" />
+                    Download
+                  </PanelHeaderButton>
                 </PanelHeader>
-                <FileTree
-                  className="h-full"
-                  files={files}
-                  hideRoot
-                  unsavedFiles={unsavedFiles}
-                  rootFolder={WORK_DIR}
-                  selectedFile={selectedFile}
-                  onFileSelect={onFileSelect}
-                />
+                <ScrollArea.Root type="always" className="h-full">
+                  <ScrollArea.Viewport className="h-full">
+                    <FileTree
+                      className="h-full"
+                      files={files}
+                      hideRoot
+                      unsavedFiles={unsavedFiles}
+                      rootFolder={WORK_DIR}
+                      selectedFile={selectedFile}
+                      onFileSelect={onFileSelect}
+                    />
+                  </ScrollArea.Viewport>
+                  <ScrollArea.Scrollbar className="flex select-none touch-none p-0.5 w-2 bg-bolt-elements-background-depth-3 transition-colors hover:bg-bolt-elements-background-depth-3" orientation="vertical">
+                    <ScrollArea.Thumb className="flex-1 bg-bolt-elements-background-depth-2 rounded-lg relative before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:w-full before:h-full before:min-w-[44px] before:min-h-[44px]" />
+                  </ScrollArea.Scrollbar>
+                  <ScrollArea.Scrollbar className="flex select-none touch-none p-0.5 bg-bolt-elements-background-depth-3 transition-colors hover:bg-bolt-elements-background-depth-3" orientation="horizontal">
+                    <ScrollArea.Thumb className="flex-1 bg-bolt-elements-background-depth-1 rounded-lg relative before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:w-full before:h-full before:min-w-[44px] before:min-h-[44px]" />
+                  </ScrollArea.Scrollbar>
+                  <ScrollArea.Corner className="bg-bolt-elements-background-depth-3" />
+                </ScrollArea.Root>
               </div>
             </Panel>
             <PanelResizeHandle />
@@ -199,6 +221,20 @@ export const EditorPanel = memo(
           <div className="h-full">
             <div className="bg-bolt-elements-terminals-background h-full flex flex-col">
               <div className="flex items-center bg-bolt-elements-background-depth-2 border-y border-bolt-elements-borderColor gap-1.5 min-h-[34px] p-2">
+                <button key="-1"
+                        className={classNames(
+                          'flex items-center text-sm cursor-pointer gap-1.5 px-3 py-2 h-full whitespace-nowrap rounded-full',
+                          {
+                            'bg-bolt-elements-terminals-buttonBackground text-bolt-elements-textPrimary': activeTerminal === -1,
+                            'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-terminals-buttonBackground':
+                              activeTerminal !== -1,
+                          },
+                        )}
+                        onClick={() => setActiveTerminal(-1)}
+                >
+                  <div className="i-bolt:logo-text?mask text-lg" />
+                  Bolt Console
+                </button>
                 {Array.from({ length: terminalCount }, (_, index) => {
                   const isActive = activeTerminal === index;
 
@@ -229,6 +265,19 @@ export const EditorPanel = memo(
                   onClick={() => workbenchStore.toggleTerminal(false)}
                 />
               </div>
+              <Terminal
+                key={-1}
+                className={classNames('h-full overflow-hidden', {
+                  hidden: activeTerminal !== -1,
+                })}
+                ref={(ref) => {
+                  terminalRefs.current[-1] = ref;
+                }}
+                readonly={true}
+                onTerminalReady={(terminal) => true}
+                onTerminalResize={(cols, rows) => true}
+                theme={theme}
+              />
               {Array.from({ length: terminalCount }, (_, index) => {
                 const isActive = activeTerminal === index;
 

@@ -27,6 +27,7 @@ export default defineConfig((config) => {
       chrome129IssuePlugin(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
     ],
+    envPrefix:["VITE_","TOGETHER_AI_API_KEY","OLLAMA_API_BASE_URL", "LM_STUDIO_API_BASE_URL"],
   };
 });
 

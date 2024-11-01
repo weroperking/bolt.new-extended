@@ -1,5 +1,50 @@
 [![Bolt.new: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://bolt.new)
 
+# Bolt.new Fork for Extended Features
+
+A feature-rich fork of [bolt.new](https://github.com/stackblitz/bolt.new) that extends the original project with multiple LLM integrations and enhanced development capabilities. Build, deploy, and debug full-stack web applications through an intuitive chat interface powered by various AI providers.
+
+## Key Features
+
+- **Multi-LLM Support**: Interact with your choice of AI providers including:
+  - OpenAI
+  - Google Generative AI (Gemini)
+  - Mistral
+  - Groq
+  - OpenRouter
+  - DeepSeek
+  - Together AI
+  - Ollama
+  - LMStudio
+
+- **Enhanced Development Experience**:
+  - File/Image upload support in chat interface
+  - Fixed file editor scrollbar functionality
+  - Intelligent error detection with one-click fixes via toast notifications
+  - Project export as ZIP
+  - Direct GitHub project publishing
+
+## Feature Status
+
+### Added Features ✅
+- [x] Multi-LLM provider support
+- [x] File/Image upload capability in chat
+- [x] Fixed file editor scrollbar functionality
+- [x] Smart error detection and fix suggestions
+- [x] Project export as ZIP
+- [x] GitHub project publishing
+
+### Planned Features 🚧
+- [ ] Improved prompts for consistent WebContainer triggering across LLMs
+- [ ] Project templates support
+- [ ] Project import functionality
+- [ ] Deployment integrations:
+  - [ ] Vercel
+  - [ ] Netlify
+  - [ ] Heroku
+- [ ] Additional language support (PHP, etc.)
+- [ ] Per-chat deployment parameter persistence
+
 # Bolt.new: AI-Powered Full-Stack Web Development in the Browser
 
 Bolt.new is an AI-powered web development agent that allows you to prompt, run, edit, and deploy full-stack applications directly from your browser—no local setup required. If you're here to build your own AI-powered web dev agent using the Bolt open source codebase, [click here to get started!](./CONTRIBUTING.md)
