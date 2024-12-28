@@ -281,7 +281,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               >
                 <div
                   className={classNames(
-                    'shadow-sm border border-bolt-elements-borderColor bg-bolt-elements-prompt-background backdrop-filter backdrop-blur-[8px] rounded-lg overflow-hidden',
+                    'shadow-sm border border-bolt-elements-borderColor bg-bolt-elements-prompt-background backdrop-filter backdrop-blur-[8px] rounded-lg overflow-hidden'
                   )}
                 >
                   {fileInputs && (
@@ -302,7 +302,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                                           alt={file.name}
                                         />
                                       ) : (
-                                        <div className="flex items-center justify-center w-full h-full text-bolt-elements-textTertiary">
+                                        <div
+                                          className="flex items-center justify-center w-full h-full text-bolt-elements-textTertiary">
                                           <div className="i-ph:file" />
                                         </div>
                                       )}
@@ -328,6 +329,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     </div>
                   )
                   }
+                  <div className="flex justify-between text-sm p-4 pt-2 pb-0">
+                    <div className="flex gap-1 items-center">
+                      <ModelSelect
+                        chatStarted={chatStarted}
+                        model={model}
+                        provider={provider}
+                        setProviderModel={setProviderModel}
+                      />
+                    </div>
+                  </div>
                   <textarea
                     ref={textareaRef}
                     className={`w-full pl-4 pt-4 pr-16 focus:outline-none resize-none text-md text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent`}
@@ -335,7 +346,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       if (event.key === 'Enter') {
                         if (event.shiftKey) {
                           return;
-                            }
+                        }
 
                         event.preventDefault();
 
@@ -348,7 +359,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     }}
                     style={{
                       minHeight: TEXTAREA_MIN_HEIGHT,
-                      maxHeight: TEXTAREA_MAX_HEIGHT,
+                      maxHeight: TEXTAREA_MAX_HEIGHT
                     }}
                     placeholder="How can Bolt help you today?"
                     translate="no"
@@ -372,12 +383,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <div className="flex justify-between text-sm p-4 pt-2">
                     <div className="flex gap-1 items-center">
                       <input type="file"
-                              ref={fileInputRef}
-                              aria-hidden="true"
-                              accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf,.txt,.doc,.docx,.py,.ipynb,.js,.mjs,.cjs,.jsx,.html,.css,.scss,.sass,.ts,.tsx,.java,.cs,.php,.c,.cc,.cpp,.cxx,.h,.hh,.hpp,.rs,.swift,.go,.rb,.kt,.kts,.scala,.sh,.bash,.zsh,.bat,.csv,.log,.ini,.cfg,.config,.json,.yaml,.yml,.toml,.lua,.sql,.md,.tex,.latex,.asm,.ino,.s"
-                              multiple
-                              style={{display: 'none', visibility: 'hidden'}}
-                              onChange={handleFileInputChange}
+                             ref={fileInputRef}
+                             aria-hidden="true"
+                             accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf,.txt,.doc,.docx,.py,.ipynb,.js,.mjs,.cjs,.jsx,.html,.css,.scss,.sass,.ts,.tsx,.java,.cs,.php,.c,.cc,.cpp,.cxx,.h,.hh,.hpp,.rs,.swift,.go,.rb,.kt,.kts,.scala,.sh,.bash,.zsh,.bat,.csv,.log,.ini,.cfg,.config,.json,.yaml,.yml,.toml,.lua,.sql,.md,.tex,.latex,.asm,.ino,.s"
+                             multiple
+                             style={{ display: 'none', visibility: 'hidden' }}
+                             onChange={handleFileInputChange}
                       />
                       <IconButton
                         title="Upload files"
@@ -412,12 +423,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           </>
                         )}
                       </IconButton>
-                      <ModelSelect
-                        chatStarted={chatStarted}
-                        model={model}
-                        provider={provider}
-                        setProviderModel={setProviderModel}
-                      />
                     </div>
                     {input.length > 3 ? (
                       <div className="text-xs text-bolt-elements-textTertiary">
@@ -431,7 +436,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </div>
             {!chatStarted && (
               <div id="examples" className="relative w-full max-w-xl mx-auto mt-8 flex justify-center">
-                <div className="flex flex-col space-y-2 [mask-image:linear-gradient(to_bottom,black_0%,transparent_180%)] hover:[mask-image:none]">
+                <div
+                  className="flex flex-col space-y-2 [mask-image:linear-gradient(to_bottom,black_0%,transparent_180%)] hover:[mask-image:none]">
                   {EXAMPLE_PROMPTS.map((examplePrompt, index) => {
                     return (
                       <button

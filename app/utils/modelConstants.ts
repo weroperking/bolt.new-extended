@@ -66,6 +66,20 @@ const STATIC_MODELS: ModelInfo[] = [
 
   // Google
   {
+    name: 'gemini-2.0-flash-exp',
+    label: 'Gemini 2.0 Flash Exp',
+    provider: 'Google',
+    inputPrice: 0.0,
+    outputPrice: 0.0,
+  },
+  {
+    name: 'gemini-1.5-pro',
+    label: 'Gemini 1.5 Pro',
+    provider: 'Google',
+    inputPrice: 2.5,
+    outputPrice: 10.0,
+  },
+  {
     name: 'gemini-1.5-flash',
     label: 'Gemini 1.5 Flash',
     provider: 'Google',
