@@ -1,24 +1,41 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
-import { StreamingTextResponse, parseStreamPart } from 'ai';
-import { streamText } from '~/lib/.server/llm/stream-text';
+import { type StreamingOptions, streamText } from '~/lib/.server/llm/stream-text';
 import { stripIndents } from '~/utils/stripIndent';
-
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
 
 export async function action(args: ActionFunctionArgs) {
   return enhancerAction(args);
 }
 
 async function enhancerAction({ context, request }: ActionFunctionArgs) {
-  const { message, model, provider } = await request.json<{ message: string, model: string, provider: string }>();
+  const { message, provider, model, apiKey, temperature, topP, topK, systemPromptId } = await request.json<{
+    message: string,
+    provider: string,
+    model: string,
+    apiKey: string,
+    temperature: number,
+    topP: number,
+    topK: number,
+    systemPromptId: string,
+  }>();
+
+  if (!message || !provider || !model) {
+    throw new Response(null, {
+      status: 400,
+      statusText: 'Bad Request',
+    });
+  }
 
   try {
+    const options: StreamingOptions = {};
+    if (temperature) options.temperature = temperature;
+    if (topP) options.topP = topP;
+    if (topK) options.topK = topK;
+
     const result = await streamText(
       [
         {
           role: 'user',
-          content: stripIndents`[Model: ${provider}-${model}]\n\n
+          content: stripIndents`
           I want you to improve the user prompt that is wrapped in \`<original_prompt>\` tags.
 
           IMPORTANT: Only respond with the improved prompt and nothing else!
@@ -30,25 +47,19 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
         },
       ],
       context.cloudflare.env,
+      options,
+      provider,
+      model,
+      apiKey,
+      systemPromptId
     );
 
-    const transformStream = new TransformStream({
-      transform(chunk, controller) {
-        const processedChunk = decoder
-          .decode(chunk)
-          .split('\n')
-          .filter((line) => line !== '')
-          .map(parseStreamPart)
-          .map((part) => part.value)
-          .join('');
-
-        controller.enqueue(encoder.encode(processedChunk));
+    return new Response(result.textStream, {
+      status: 200,
+      headers: {
+        contentType: 'text/plain; charset=utf-8',
       },
     });
-
-    const transformedStream = result.toAIStream().pipeThrough(transformStream);
-
-    return new StreamingTextResponse(transformedStream);
   } catch (error) {
     console.log(error);
 

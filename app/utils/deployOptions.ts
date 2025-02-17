@@ -50,6 +50,7 @@ export interface Deployer {
   active: boolean;
   steps?: DeployStep[];
   deploy: (inputs: Record<string, string>, mixedId: string) => Promise<DeployResponse>;
+  getCacheParams?: () => any;
 }
 
 const githubDeployer: Deployer = {
@@ -272,12 +273,135 @@ const vercelDeployer: Deployer = {
   name: "Vercel",
   key: "vercel",
   icon: "i-ph:vercel",
-  active: false,
-  steps: [],
-  deploy: async (inputs: Record<string, string>) => {
-    return { status: "error", reason: "Not implemented yet" };
+  active: true,
+  steps: [
+    {
+      id: "auth",
+      title: "Authentication",
+      inputs: [
+        {
+          name: "Vercel Token",
+          type: "password",
+          placeholder: "Vercel Token",
+          required: true,
+          description: 'Create your Vercel API token by clicking <a href="https://vercel.com/account/tokens" target="_blank" rel="noopener noreferrer">here</a>.'
+        }
+      ]
+    },
+    {
+      id: "project",
+      title: "Project",
+      inputs: [
+        {
+          name: "Project Name",
+          type: "text",
+          placeholder: "Project Name",
+          required: true,
+          description: "Enter the project name for deployment."
+        }
+      ]
+    }
+  ],
+  deploy: async (inputs: Record<string, string>): Promise<DeployResponse> => {
+    try {
+      const token = inputs["Vercel Token"];
+      const projectName = inputs["Project Name"];
+      if (!token || !projectName) {
+        return { status: "error", reason: "Missing required fields." };
+      }
+
+      let isRedeploy = false;
+      const deployId = inputs["deploymentId"];
+      const isSameProject = inputs["oldName"] && inputs["oldName"] === projectName;
+      if (deployId && isSameProject) {
+        isRedeploy = true;
+      }
+
+      // Retrieve files from workbenchStore
+      const files = workbenchStore.files.get();
+      if (!files || Object.keys(files).length === 0) {
+        return { status: "error", reason: "No files found for deployment." };
+      }
+
+      // Prepare files for the Vercel API
+      const fileArray = await Promise.all(
+        Object.entries(files).map(async ([path, file]) => {
+          if (!file || file.type !== 'file') return null;
+          // Remove the '/home/project/' prefix from the path
+          const normalizedPath = path.replace(/^\/home\/project\//, '');
+          if (file.isBinary) {
+            return {
+              file: normalizedPath,
+              data: file.content,
+              encoding: "base64"
+            };
+          }
+          return {
+            file: normalizedPath,
+            data: file.content
+          };
+        })
+      );
+      const filteredFiles = fileArray.filter(Boolean);
+
+      // Create the payload for Vercel deployment
+      const payload: any = {
+        name: projectName,
+        files: filteredFiles,
+        target: "production",
+        projectSettings: {
+          "buildCommand": null,
+          "devCommand": null,
+          "framework": "nextjs",
+          "commandForIgnoringBuildStep": "",
+          "installCommand": null,
+          "outputDirectory": null
+        }
+      };
+
+      if (isRedeploy) {
+        payload["deploymentId"] = deployId;
+      }
+
+      // Send the request to the Vercel API
+      const response = await fetch("https://api.vercel.com/v13/deployments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorResponse: {
+          error?: {
+            message: string;
+          };
+        } = await response.json();
+        return {
+          status: "error",
+          reason: `Vercel deployment error: ${errorResponse.error?.message || response.statusText}`
+        };
+      }
+
+      const result: {
+        url: string;
+      } = await response.json();
+
+      return {
+        status: "success",
+        reason: "Deployment started successfully",
+        redirectUrl: "https://"+result.url // Deployment URL
+      };
+
+    } catch (error) {
+      console.error(error);
+      return { status: "error", reason: "An error occurred during Vercel deployment" };
+    }
   }
 };
+
 
 const netlifyDeployer: Deployer = {
   name: "Netlify",
@@ -348,6 +472,7 @@ const generateReadme = async (mixedId: string) => {
   if (!mixedId) return;
   if (!db) return;
   const storedMessages = await getMessages(db, mixedId);
+  let readmeContent = `This is a [Bolt Extended](https://github.com/FurkannM/bolt.new-extended) project deployed to GitHub. 🚀 \n\n`;
   if (storedMessages && storedMessages.messages.length > 0) {
     const messages: any[] = storedMessages.messages;
 
@@ -387,11 +512,11 @@ const generateReadme = async (mixedId: string) => {
         const match = _input.match(regex);
 
         if (match) {
-          return match[1].trim();
+          readmeContent += match[1].trim();
         }
       }
     }
   }
 
-  return `This is a [Bolt Extended](https://github.com/FurkannM/bolt.new-extended) project deployed to GitHub. 🚀`;
+  return readmeContent;
 }

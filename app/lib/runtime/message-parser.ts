@@ -57,6 +57,12 @@ export class StreamingMessageParser {
   constructor(private _options: StreamingMessageParserOptions = {}) {}
 
   parse(messageId: string, input: string) {
+    if (input.startsWith('```') && input.includes(ARTIFACT_TAG_OPEN)) {
+      input = input.replace(/^```[a-zA-Z]*\n/, '');
+      input = input.replace(/(?:\r?\n)?```[\s]*$/, '');
+    }
+
+
     let state = this.#messages.get(messageId);
 
     if (!state) {

@@ -89,8 +89,8 @@ export function getLMStudioModel(baseURL: string, model: string) {
   return lmStudio(model);
 }
 
-export function getModel(provider: string, model: string, env: Env) {
-  const apiKey = getAPIKey(env, provider);
+export function getModel(provider: string, model: string, env: Env, apiKey?: string) {
+  if (!apiKey) apiKey = getAPIKey(env, provider);
   const baseURL = getBaseURL(env, provider);
 
   switch (provider) {

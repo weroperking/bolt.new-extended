@@ -4,47 +4,76 @@
 
 A feature-rich fork of [bolt.new](https://github.com/stackblitz/bolt.new) that extends the original project with multiple LLM integrations and enhanced development capabilities. Build, deploy, and debug full-stack web applications through an intuitive chat interface powered by various AI providers.
 
+## Table of Contents
+
+- [Key Features](#key-features)
+  - [Multi-LLM Support](#multi-llm-support)
+  - [Enhanced Development Experience](#enhanced-development-experience)
+- [Feature Status](#feature-status)
+  - [Added Features ✅](#added-features-)
+  - [Changed Features 🔄](#changed-features-)
+  - [Planned Features 🚧](#planned-features-)
+
 ## Key Features
 
-- **Multi-LLM Support**: Interact with your choice of AI providers including:
-  - OpenAI
-  - Google Generative AI (Gemini)
-  - Mistral
-  - Groq
-  - OpenRouter
-  - DeepSeek
-  - Together AI
-  - Ollama
-  - LMStudio
+### Multi-LLM Support
 
-- **Enhanced Development Experience**:
-  - File/Image upload support in chat interface
-  - Fixed file editor scrollbar functionality
-  - Intelligent error detection with one-click fixes via toast notifications
-  - Project export as ZIP
-  - Direct GitHub project publishing with auto-generated README
+Interact with your choice of AI providers including:
+- OpenAI
+- Google Generative AI (Gemini)
+- Mistral
+- Groq
+- OpenRouter
+- DeepSeek
+- Together AI
+- Ollama
+- LMStudio
+
+### Enhanced Development Experience
+
+- **File/Image Upload:** Upload files and images directly in the chat interface.
+- **Improved Editor:** Fixed file editor scrollbar functionality.
+- **Smart Error Detection:** Detect errors and apply one-click fixes via toast notifications.
+- **Project Export:** Export your project as a ZIP file.
+- **GitHub Publishing:** Directly publish projects to GitHub with an auto-generated README.
+- **Artifact Fixes:** Resolved issues with artifacts (e.g., `<div class="__boltArtifact__" ...></div>`) appearing in chat messages.
 
 ## Feature Status
 
 ### Added Features ✅
-- [x] Multi-LLM provider support
-- [x] File/Image upload capability in chat
-- [x] Fixed file editor scrollbar functionality
-- [x] Smart error detection and fix suggestions
-- [x] Project export as ZIP
-- [x] GitHub project publishing
-- [x] Auto-generated README for GitHub projects
+
+- Multi-LLM provider support
+- File/Image upload capability in chat
+- Fixed file editor scrollbar functionality
+- Smart error detection and fix suggestions
+- Project export as ZIP
+- GitHub project publishing
+- Auto-generated README for GitHub projects
+- Project import functionality via URL: `{YourDomain}/git/github.com/{username}/{repo}`
+- File icons for improved file management
+- Local API key support for LLMs
+- Fixed artifacts in chat messages
+- Preview project in new tab and full screen mode
+- Deploy to Vercel
+- Persistence of deploy parameters for each chat
+- 1M token-based input/output pricing in model selection
+- Prompt library for enhanced system prompts
+- Settings page (currently for the prompt library)
+
+### Changed Features 🔄
+
+- Deploy and Download buttons moved to the top bar
+- Enhanced stability when passing the model and provider to the API
 
 ### Planned Features 🚧
-- [ ] Improved prompts for consistent WebContainer triggering across LLMs
-- [ ] Project templates support
-- [ ] Project import functionality
-- [ ] Deployment integrations:
-  - [ ] Vercel
-  - [ ] Netlify
-  - [ ] Heroku
-- [ ] Additional language support (PHP, etc.)
-- [ ] Per-chat deployment parameter persistence
+
+- Migrate the model API key and settings to the settings page, allowing models and providers to be toggled on/off or removed.
+- Responsive view modes for project preview.
+- Support for project templates.
+- Project import functionality via file upload.
+- Additional deployment integrations:
+  - Netlify
+  - Heroku
 
 # Bolt.new: AI-Powered Full-Stack Web Development in the Browser
 

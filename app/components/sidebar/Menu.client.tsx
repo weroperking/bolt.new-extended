@@ -2,13 +2,14 @@ import { motion, type Variants } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
-import { IconButton } from '~/components/ui/IconButton';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { db, deleteById, getAll, chatId, type ChatHistoryItem } from '~/lib/persistence';
 import { cubicEasingFn } from '~/utils/easings';
 import { logger } from '~/utils/logger';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
+import { SettingsButton } from '~/components/ui/SettingsButton';
+import { SettingsDialog } from '~/components/settings/SettingsDialog';
 
 const menuVariants = {
   closed: {
@@ -38,6 +39,8 @@ export function Menu() {
   const [list, setList] = useState<ChatHistoryItem[]>([]);
   const [open, setOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const loadEntries = useCallback(() => {
     if (db) {
@@ -119,7 +122,7 @@ export function Menu() {
           </a>
         </div>
         <div className="text-bolt-elements-textPrimary font-medium pl-6 pr-5 my-2">Your Chats</div>
-        <div className="flex-1 overflow-scroll pl-4 pr-5 pb-5">
+        <div className="flex-1 overflow-y-auto pl-4 pr-5 pb-5">
           {list.length === 0 && <div className="pl-2 text-bolt-elements-textTertiary">No previous conversations</div>}
           <DialogRoot open={dialogContent !== null}>
             {binDates(list).map(({ category, items }) => (
@@ -164,8 +167,12 @@ export function Menu() {
           </DialogRoot>
         </div>
         <div className="flex items-center border-t border-bolt-elements-borderColor p-4">
+          <SettingsButton onClick={() => {
+            setSettingsOpen(true);
+          }} />
           <ThemeSwitch className="ml-auto" />
         </div>
+        <SettingsDialog open={settingsOpen} setOpen={setSettingsOpen} />
       </div>
     </motion.div>
   );

@@ -41,22 +41,45 @@ export function useChatHistory() {
     }
 
     if (mixedId) {
-      getMessages(db, mixedId)
-        .then((storedMessages) => {
-          if (storedMessages && storedMessages.messages.length > 0) {
-            setInitialMessages(storedMessages.messages);
-            setUrlId(storedMessages.urlId);
-            description.set(storedMessages.description);
-            chatId.set(storedMessages.id);
-          } else {
-            navigate(`/`, { replace: true });
-          }
+      //if mixedid starts with github.com, get project and add workbench artifacts
+      if (mixedId.startsWith('github.com')) {
+        console.log('mixedId', mixedId);
+        const url = new URL("https://"+mixedId);
+        const path = url.pathname.split('/');
+        const owner = path[1];
+        const repo = path[2];
 
+        workbenchStore.importFromGitHub(owner, repo).then(() => {
+          setInitialMessages([
+            {
+              id: '1',
+              content: 'I see you have a project from GitHub. How can I help you?',
+              role: 'assistant',
+            },
+          ])
+          setUrlId(repo);
+          description.set(repo);
+          chatId.set(repo);
           setReady(true);
-        })
-        .catch((error) => {
-          toast.error(error.message);
         });
+      } else {
+        getMessages(db, mixedId)
+          .then((storedMessages) => {
+            if (storedMessages && storedMessages.messages.length > 0) {
+              setInitialMessages(storedMessages.messages);
+              setUrlId(storedMessages.urlId);
+              description.set(storedMessages.description);
+              chatId.set(storedMessages.id);
+            } else {
+              navigate(`/`, { replace: true });
+            }
+
+            setReady(true);
+          })
+          .catch((error) => {
+            toast.error(error.message);
+          });
+      }
     }
   }, []);
 

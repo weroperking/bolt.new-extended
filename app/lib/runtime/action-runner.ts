@@ -1,11 +1,11 @@
 import { WebContainer } from '@webcontainer/api';
-import { map, type MapStore } from 'nanostores';
+import { atom, map, type MapStore } from 'nanostores';
 import * as nodePath from 'node:path';
 import type { BoltAction } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
-import { eventBus } from '~/lib/events';
+import { BoltTerminal } from '~/utils/shell';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -36,12 +36,15 @@ type ActionsMap = MapStore<Record<string, ActionState>>;
 
 export class ActionRunner {
   #webcontainer: Promise<WebContainer>;
+  #boltTerminal: BoltTerminal;
+  runnerId = atom<string>(`${Date.now()}`);
   #currentExecutionPromise: Promise<void> = Promise.resolve();
 
   actions: ActionsMap = map({});
 
-  constructor(webcontainerPromise: Promise<WebContainer>) {
+  constructor(webcontainerPromise: Promise<WebContainer>, boltTerminal: BoltTerminal) {
     this.#webcontainer = webcontainerPromise;
+    this.#boltTerminal = boltTerminal;
   }
 
   addAction(data: ActionCallbackData) {
@@ -127,60 +130,26 @@ export class ActionRunner {
       unreachable('Expected shell action');
     }
 
-    const webcontainer = await this.#webcontainer;
+    const boltTerminal = this.#boltTerminal;
+    await boltTerminal.ready();
 
-    const process = await webcontainer.spawn('jsh', ['-c', action.content], {
-      env: { npm_config_yes: true },
-    });
-
-    action.abortSignal.addEventListener('abort', () => {
-      process.kill();
-    });
-
-    const errorMessages: string[] = [];
-    let errorTimeout: NodeJS.Timeout | null = null;
-
-    const sendErrors = () => {
-      if (errorMessages.length > 0) {
-        console.error('errorMessages', errorMessages);
-        eventBus.emit('webcontainer-error', {
-          type: 'error',
-          messages: [...errorMessages]
-        });
-        errorMessages.length = 0;
-      }
-    };
-
-    process.output.pipeTo(
-      new WritableStream({
-        write(data) {
-          eventBus.emit('webcontainer-console', {
-            message: data
-          });
-
-          let deAnsi = data.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-ntqry=><]/g, '');
-          if (deAnsi.startsWith('- error')) {
-            //check has same error message
-            if (!errorMessages.includes(deAnsi.trim())) errorMessages.push(deAnsi.trim());
-
-            if (errorTimeout) {
-              clearTimeout(errorTimeout);
-            }
-
-            errorTimeout = setTimeout(sendErrors, 10000);
-          }
-        }
-      }),
-    );
-
-    const exitCode = await process.exit;
-
-    if (errorTimeout) {
-      clearTimeout(errorTimeout);
+    if (!boltTerminal || !boltTerminal.getTerminal() || !boltTerminal.getProcess()) {
+      unreachable('Bolt terminal not found');
     }
-    sendErrors();
 
-    logger.debug(`Process terminated with code ${exitCode}`);
+    const response = await boltTerminal.runCommand(
+      this.runnerId.get(),
+      action.content,
+      () => {
+        logger.debug(`[${action.type}]: Aborting Action`, action);
+        action.abort();
+      }
+    );
+    logger.debug(`${action.type} Shell Response: [exit code:${response?.exitCode}]`);
+
+    if (response?.exitCode !== 0) {
+      throw new Error(`Failed to run command: ${response?.exitCode}`);
+    }
   }
 
   async #runFileAction(action: ActionState) {

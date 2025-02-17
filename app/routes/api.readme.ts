@@ -1,29 +1,38 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
-import { StreamingTextResponse, parseStreamPart } from 'ai';
-import { type Messages, streamText } from '~/lib/.server/llm/stream-text';
+import { type Messages, type StreamingOptions, streamText } from '~/lib/.server/llm/stream-text';
 import { stripIndents } from '~/utils/stripIndent';
-import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODEL_REGEX } from '~/utils/modelConstants';
-
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
 
 export async function action(args: ActionFunctionArgs) {
   return readmeAction(args);
 }
 
 async function readmeAction({ context, request }: ActionFunctionArgs) {
-  const { messages } = await request.json<{ messages: Messages }>();
+  const { messages, provider, model, apiKey, temperature, topP, topK } = await request.json<{
+    messages: Messages,
+    provider: string,
+    model: string,
+    apiKey: string,
+    temperature: number,
+    topP: number,
+    topK: number
+  }>();
+
+  if (!messages || !provider || !model) {
+    throw new Response(null, {
+      status: 400,
+      statusText: 'Bad Request',
+    });
+  }
 
   try {
-    const lastMessage = messages[messages.length - 1];
-    const model = lastMessage.content.match(MODEL_REGEX);
-
-    const provider = model ? model[1] : DEFAULT_PROVIDER;
-    const modelId = model ? model[2] : DEFAULT_MODEL;
+    const options: StreamingOptions = {};
+    if (temperature) options.temperature = temperature;
+    if (topP) options.topP = topP;
+    if (topK) options.topK = topK;
 
     messages.push({
       role: "user",
-      content: stripIndents`[Model: ${provider}-${modelId}]\n\n
+      content: stripIndents`
           You are creating a README.md file for a that project. Keep it concise and direct.
 
           <important_sections>
@@ -37,25 +46,14 @@ async function readmeAction({ context, request }: ActionFunctionArgs) {
           Note: The project helps automate the process of uploading WebContainer projects to GitHub, so focus on that core functionality in the README.
         `,
     });
-    const result = await streamText(messages, context.cloudflare.env);
+    const result = await streamText(messages, context.cloudflare.env, options, provider, model, apiKey);
 
-    const transformStream = new TransformStream({
-      transform(chunk, controller) {
-        const processedChunk = decoder
-          .decode(chunk)
-          .split('\n')
-          .filter((line) => line !== '')
-          .map(parseStreamPart)
-          .map((part) => part.value)
-          .join('');
-
-        controller.enqueue(encoder.encode(processedChunk));
+    return new Response(result.textStream, {
+      status: 200,
+      headers: {
+        contentType: 'text/plain; charset=utf-8',
       },
     });
-
-    const transformedStream = result.toAIStream().pipeThrough(transformStream);
-
-    return new StreamingTextResponse(transformedStream);
   } catch (error) {
     console.log(error);
 

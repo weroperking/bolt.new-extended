@@ -18,8 +18,7 @@ export function Header() {
         },
       )}
     >
-      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary cursor-pointer">
-        <div className="i-ph:sidebar-simple-duotone text-xl" />
+      <div className="flex items-center grow-1 basis-60 gap-2 z-logo text-bolt-elements-textPrimary cursor-pointer">
         <a href="/" className="text-2xl font-semibold text-accent flex items-center">
           <span className="i-bolt:logo-text?mask w-[46px] inline-block" />
         </a>
@@ -30,7 +29,7 @@ export function Header() {
       {chat.started && (
         <ClientOnly>
           {() => (
-            <div className="mr-1">
+            <div className="flex grow-1 basis-60 justify-end items-center gap-1.5">
               <HeaderActionButtons />
             </div>
           )}

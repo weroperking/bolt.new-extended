@@ -13,9 +13,9 @@ import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { BaseChat } from './BaseChat';
 import { webcontainer } from '~/lib/webcontainer';
-import { eventBus, type WebcontainerErrorEvent } from '~/lib/events';
 import { isValidFileType } from '~/utils/fileValidation';
-import { DEFAULT_MODEL, DEFAULT_PROVIDER, type Provider } from '~/utils/modelConstants';
+import { DEFAULT_MODEL, DEFAULT_PROVIDER, type ModelConfig, type Provider } from '~/utils/modelConstants';
+import { useLocalStorage } from 'usehooks-ts';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -137,6 +137,16 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     });
   }
 
+  const [modelConfig, setModelConfig] = useLocalStorage<ModelConfig>(
+    'chat_model_config',
+    {
+      provider: DEFAULT_PROVIDER,
+      model: DEFAULT_MODEL
+    }
+  )
+
+  const [systemPrompt, ] = useLocalStorage('system-prompt', 'extended-v1');
+
   const { messages, isLoading, input, handleInputChange, setInput, stop, append } = useChat({
     api: '/api/chat',
     onError: (error) => {
@@ -147,6 +157,10 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       logger.debug('Finished streaming');
     },
     initialMessages,
+    body: {
+      ...modelConfig,
+      systemPromptId: systemPrompt
+    }
   });
 
   const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
@@ -240,7 +254,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
        * manually reset the input and we'd have to manually pass in file attachments. However, those
        * aren't relevant here.
        */
-      append({ role: 'user', content: `[Model: ${provider}-${model}]\n\n${diff}\n\n${_input}` });
+      append({ role: 'user', content: `${diff}\n\n${_input}` });
 
       /**
        * After sending a new message we reset all modifications since the model
@@ -283,7 +297,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       }[] = await Promise.all(filePromises);
       append({
         role: 'user',
-        content: `[Model: ${provider}-${model}]\n\n${_input}`,
+        content: `${_input}`,
         experimental_attachments: experimental_attachments
       });
     }
@@ -323,19 +337,18 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     const sentErrors = new Set<string>();
     let currentToastId: Id = -1;
 
-    const handleWebcontainerError = (event: WebcontainerErrorEvent) => {
-      const newErrors = event.messages.filter((msg: string) => !sentErrors.has(msg));
-      if (newErrors.length === 0) return;
-      newErrors.forEach((msg: string) => sentErrors.add(msg));
+    const handleWebcontainerError = (exception: Error) => {
+      if (sentErrors.has(exception.message)) return;
+      sentErrors.add(exception.message);
 
       const joinedErrors = Array.from(sentErrors).join('\n');
       const errorElement = <div className="flex flex-col gap-2">
         <div>Ran into errors while executing the command:</div>
         <div className="text-sm text-bolt-elements-textSecondary">
-          {newErrors[0].slice(0, 100)}
-          {newErrors[0].length > 100 && '...'}
+          {exception.message.slice(0, 100)}
+          {exception.message.length > 100 && '...'}
 
-          {newErrors.length > 1 && ` (+${newErrors.length - 1} more)`}
+          {sentErrors.size > 1 && ` (+${sentErrors.size - 1} more)`}
         </div>
         <button
           onClick={() => {
@@ -345,7 +358,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
             currentToastId = -1;
             append({
               role: 'user',
-              content: `[Model: ${provider}-${model}]\n\n${errorMessage}`
+              content: `${errorMessage}`
             });
           }}
           className="px-3 py-1.5 bg-bolt-elements-button-primary-background hover:bg-bolt-elements-button-primary-backgroundHover text-bolt-elements-button-primary-text rounded-md text-sm font-medium"
@@ -370,23 +383,33 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       }
     };
 
+    const handleCommandFinished = (sessionId: string, result: { output: string; exitCode: number; }) => {
+      console.log('Command finished', sessionId, result);
+      if ([0, 8].includes(result.exitCode)) {
+        return;
+      }
+
+      handleWebcontainerError(new Error(result.output));
+    }
+
     webcontainer.then(() => {
-      eventBus.on('webcontainer-error', handleWebcontainerError);
+      workbenchStore.attachBoltTerminalHandler('error', handleWebcontainerError);
+      workbenchStore.attachBoltTerminalHandler('commandFinished', handleCommandFinished);
     });
 
     return () => {
       webcontainer.then(() => {
-        eventBus.off('webcontainer-error', handleWebcontainerError);
+        workbenchStore.unattachBoltTerminalHandler('error', handleWebcontainerError);
+        workbenchStore.unattachBoltTerminalHandler('commandFinished', handleCommandFinished);
       });
     };
   }, [append]);
 
-  const [provider, setProvider] = useState(DEFAULT_PROVIDER);
-  const [model, setModel] = useState(DEFAULT_MODEL);
-
   const setProviderModel = (provider: string, model: string) => {
-    setProvider(provider as Provider);
-    setModel(model);
+    setModelConfig({ ...modelConfig, provider: provider as Provider, model });
+  }
+  const handleModelConfigChange = (newModelConfig: ModelConfig) => {
+    setModelConfig({ ...modelConfig, ...newModelConfig });
   }
 
   return (
@@ -403,9 +426,11 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
 
-      model={model}
-      provider={provider}
+      model={modelConfig.model}
+      provider={modelConfig.provider}
       setProviderModel={setProviderModel}
+      modelConfig={modelConfig}
+      setModelConfig={handleModelConfigChange}
 
       textareaRef={textareaRef}
       input={input}
@@ -430,10 +455,10 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         };
       })}
       enhancePrompt={() => {
-        enhancePrompt(input, model, provider, (input) => {
+        enhancePrompt(input, (input) => {
           setInput(input);
           scrollTextArea();
-        });
+        }, modelConfig);
       }}
     />
   );

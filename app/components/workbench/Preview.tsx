@@ -6,9 +6,12 @@ import { PortDropdown } from './PortDropdown';
 
 export const Preview = memo(() => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const previewPageRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
   const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   const hasSelectedPreview = useRef(false);
   const previews = useStore(workbenchStore.previews);
   const activePreview = previews[activePreviewIndex];
@@ -71,8 +74,42 @@ export const Preview = memo(() => {
     }
   };
 
+  const toggleFullscreen = () => {
+    if (isFullscreen) {
+      document.exitFullscreen();
+    } else if (previewPageRef.current) {
+      previewPageRef.current.requestFullscreen();
+    }
+  }
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }
+  }, []);
+
+  const openInNewTab = () => {
+    if (activePreview?.baseUrl) {
+      const id = activePreview.baseUrl.split('.')[0].split('https://')[1];
+
+      const newTab = window.open(`/preview/${id}`, '_blank', 'noopener,noreferrer');
+      if (newTab) {
+        newTab.focus();
+      }
+    }
+  }
+
   return (
-    <div className="w-full h-full flex flex-col">
+    <div
+      ref={previewPageRef}
+      className="w-full h-full flex flex-col"
+    >
       {isPortDropdownOpen && (
         <div className="z-iframe-overlay w-full h-full absolute" onClick={() => setIsPortDropdownOpen(false)} />
       )}
@@ -101,16 +138,30 @@ export const Preview = memo(() => {
             }}
           />
         </div>
-        {previews.length > 1 && (
-          <PortDropdown
-            activePreviewIndex={activePreviewIndex}
-            setActivePreviewIndex={setActivePreviewIndex}
-            isDropdownOpen={isPortDropdownOpen}
-            setHasSelectedPreview={(value) => (hasSelectedPreview.current = value)}
-            setIsDropdownOpen={setIsPortDropdownOpen}
-            previews={previews}
+        <div className="flex items-center gap-1.5">
+          {previews.length > 1 && (
+            <PortDropdown
+              activePreviewIndex={activePreviewIndex}
+              setActivePreviewIndex={setActivePreviewIndex}
+              isDropdownOpen={isPortDropdownOpen}
+              setHasSelectedPreview={(value) => (hasSelectedPreview.current = value)}
+              setIsDropdownOpen={setIsPortDropdownOpen}
+              previews={previews}
+            />
+          )}
+
+          <IconButton
+            icon="i-ph:arrow-square-out"
+            title="Open in new tab"
+            onClick={openInNewTab}
           />
-        )}
+
+          <IconButton
+            icon={isFullscreen ? 'i-ph:corners-in' : 'i-ph:corners-out'}
+            title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
+            onClick={toggleFullscreen}
+          />
+        </div>
       </div>
       <div className="flex-1 border-t border-bolt-elements-borderColor">
         {activePreview ? (

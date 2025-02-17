@@ -1,51 +1,75 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS } from '~/lib/.server/llm/constants';
-import { CONTINUE_PROMPT } from '~/lib/.server/llm/prompts';
+import { CONTINUE_PROMPT } from '~/lib/.server/llm/prompts/prompts';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import SwitchableStream from '~/lib/.server/llm/switchable-stream';
+import { createDataStream } from 'ai';
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages } = await request.json<{ messages: Messages }>();
+  const { messages, provider, model, apiKey, temperature, topP, topK, systemPromptId } = await request.json<{
+    messages: Messages,
+    provider: string,
+    model: string,
+    apiKey: string,
+    temperature: number,
+    topP: number,
+    topK: number
+    systemPromptId: string,
+  }>();
+
+  if (!messages || !provider || !model) {
+    throw new Response(null, {
+      status: 400,
+      statusText: 'Bad Request',
+    });
+  }
 
   const stream = new SwitchableStream();
 
   try {
-    const options: StreamingOptions = {
-      toolChoice: 'none',
-      onFinish: async ({ text: content, finishReason }) => {
-        if (finishReason !== 'length') {
-          return stream.close();
-        }
+    const options: StreamingOptions = {};
+    if (temperature) options.temperature = temperature;
+    if (topP) options.topP = topP;
+    if (topK) options.topK = topK;
 
-        if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
-          throw Error('Cannot continue message: Maximum segments reached');
-        }
+    options.toolChoice = 'none';
 
-        const switchesLeft = MAX_RESPONSE_SEGMENTS - stream.switches;
+    const dataStream = createDataStream({
+      async execute(dataStream) {
+        options.onFinish = async ({ text: content, finishReason }) => {
+          if (finishReason !== 'length') {
+            return stream.close();
+          }
 
-        console.log(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} switches left)`);
+          if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
+            throw Error('Cannot continue message: Maximum segments reached');
+          }
 
-        messages.push({ role: 'assistant', content });
-        messages.push({ role: 'user', content: CONTINUE_PROMPT });
+          const switchesLeft = MAX_RESPONSE_SEGMENTS - stream.switches;
+          console.log(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} switches left)`);
 
-        const result = await streamText(messages, context.cloudflare.env, options);
+          messages.push({ role: 'assistant', content });
+          messages.push({ role: 'user', content: CONTINUE_PROMPT });
 
-        return stream.switchSource(result.toAIStream());
-      },
-    };
+          const result = await streamText(messages, context.cloudflare.env, options, provider, model, apiKey, systemPromptId);
+          result.mergeIntoDataStream(dataStream);
+        };
 
-    const result = await streamText(messages, context.cloudflare.env, options);
+        const result = await streamText(messages, context.cloudflare.env, options, provider, model, apiKey, systemPromptId);
+        result.mergeIntoDataStream(dataStream);
+      }
+    });
 
-    stream.switchSource(result.toAIStream());
-
-    return new Response(stream.readable, {
+    return new Response(dataStream, {
       status: 200,
       headers: {
-        contentType: 'text/plain; charset=utf-8',
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        Connection: 'keep-alive',
+        'Cache-Control': 'no-cache',
       },
     });
   } catch (error) {

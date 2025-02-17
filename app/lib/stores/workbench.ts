@@ -10,6 +10,9 @@ import { FilesStore, type FileMap } from './files';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import JSZip from 'jszip';
+import { importFromGitHub } from '~/utils/import';
+import type { WebContainer } from '@webcontainer/api';
+import nodePath from 'node:path';
 
 export interface ArtifactState {
   id: string;
@@ -25,6 +28,8 @@ type Artifacts = MapStore<Record<string, ArtifactState>>;
 export type WorkbenchViewType = 'code' | 'preview';
 
 export class WorkbenchStore {
+  #webcontainer: Promise<WebContainer>;
+
   #previewsStore = new PreviewsStore(webcontainer);
   #filesStore = new FilesStore(webcontainer);
   #editorStore = new EditorStore(this.#filesStore);
@@ -45,6 +50,7 @@ export class WorkbenchStore {
       import.meta.hot.data.showWorkbench = this.showWorkbench;
       import.meta.hot.data.currentView = this.currentView;
     }
+    this.#webcontainer = webcontainer;
   }
 
   downloadProject() {
@@ -91,6 +97,48 @@ export class WorkbenchStore {
     });
   }
 
+  async importFromGitHub(owner: string, repo: string) {
+    const project = await importFromGitHub(owner, repo);
+
+    if (!project) {
+      console.error("Failed to import project from GitHub:", owner, repo);
+      return;
+    }
+    this.setDocuments(project);
+
+    const webcontainer = await this.#webcontainer;
+    for (const filePath of Object.keys(project)) {
+      if (!project[filePath]) {
+        continue;
+      }
+      if (project[filePath].type !== 'file') {
+        continue;
+      }
+      let content = project[filePath].content;
+      let folder = nodePath.dirname(filePath);
+
+      // remove trailing slashes
+      folder = folder.replace(/\/+$/g, '');
+
+      if (folder !== '.') {
+        try {
+          await webcontainer.fs.mkdir(folder, { recursive: true });
+          console.log('Created folder', folder);
+        } catch (error) {
+          console.error('Failed to create folder\n\n', error);
+        }
+      }
+
+      try {
+        await webcontainer.fs.writeFile(filePath, content);
+        console.log(`File written ${filePath}`);
+      } catch (error) {
+        console.error('Failed to write file\n\n', error);
+      }
+    }
+    this.showWorkbench.set(true);
+  }
+
 
   get previews() {
     return this.#previewsStore.previews;
@@ -118,6 +166,22 @@ export class WorkbenchStore {
 
   get showTerminal() {
     return this.#terminalStore.showTerminal;
+  }
+
+  get boltTerminal() {
+    return this.#terminalStore.boltTerminal;
+  }
+
+  attachBoltTerminalHandler(event: string, callback: (...args: any[]) => void) {
+    this.#terminalStore.boltTerminal.addEventHandler(event, callback);
+  }
+
+  unattachBoltTerminalHandler(event: string, callback: (...args: any[]) => void) {
+    this.#terminalStore.boltTerminal.removeEventHandler(event, callback);
+  }
+
+  attachBoltTerminal(terminal: ITerminal) {
+    this.#terminalStore.attachBoltTerminal(terminal);
   }
 
   toggleTerminal(value?: boolean) {
@@ -275,7 +339,7 @@ export class WorkbenchStore {
       id,
       title,
       closed: false,
-      runner: new ActionRunner(webcontainer),
+      runner: new ActionRunner(webcontainer, this.boltTerminal),
     });
   }
 

@@ -1,12 +1,13 @@
 import type { WebContainer, WebContainerProcess } from '@webcontainer/api';
 import { atom, type WritableAtom } from 'nanostores';
 import type { ITerminal } from '~/types/terminal';
-import { newShellProcess } from '~/utils/shell';
+import { createBoltTerminal, newShellProcess } from '~/utils/shell';
 import { coloredText } from '~/utils/terminal';
 
 export class TerminalStore {
   #webcontainer: Promise<WebContainer>;
   #terminals: Array<{ terminal: ITerminal; process: WebContainerProcess }> = [];
+  #boltTerminal = createBoltTerminal()
 
   showTerminal: WritableAtom<boolean> = import.meta.hot?.data.showTerminal ?? atom(false);
 
@@ -15,6 +16,18 @@ export class TerminalStore {
 
     if (import.meta.hot) {
       import.meta.hot.data.showTerminal = this.showTerminal;
+    }
+  }
+  get boltTerminal() {
+    return this.#boltTerminal;
+  }
+  async attachBoltTerminal(terminal: ITerminal) {
+    try {
+      const wc = await this.#webcontainer;
+      await this.#boltTerminal.initialize(wc, terminal);
+    } catch (error: any) {
+      terminal.write(coloredText.red('Failed to spawn bolt terminal\n\n') + error.message);
+      return;
     }
   }
 

@@ -1,18 +1,21 @@
 import { useState } from 'react';
 import { createScopedLogger } from '~/utils/logger';
+import type { ModelConfig } from '~/utils/modelConstants';
+import { useLocalStorage } from 'usehooks-ts';
 
 const logger = createScopedLogger('usePromptEnhancement');
 
 export function usePromptEnhancer() {
   const [enhancingPrompt, setEnhancingPrompt] = useState(false);
   const [promptEnhanced, setPromptEnhanced] = useState(false);
+  const [systemPrompt, ] = useLocalStorage('system-prompt', 'extended-v1');
 
   const resetEnhancer = () => {
     setEnhancingPrompt(false);
     setPromptEnhanced(false);
   };
 
-  const enhancePrompt = async (input: string, model: string, provider: string, setInput: (value: string) => void) => {
+  const enhancePrompt = async (input: string, setInput: (value: string) => void, modelConfig: ModelConfig) => {
     setEnhancingPrompt(true);
     setPromptEnhanced(false);
 
@@ -20,8 +23,8 @@ export function usePromptEnhancer() {
       method: 'POST',
       body: JSON.stringify({
         message: input,
-        model,
-        provider,
+        ...modelConfig,
+        systemPromptId: systemPrompt,
       }),
     });
 

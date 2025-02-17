@@ -10,8 +10,6 @@ export type Provider =
   | 'Ollama'
   | 'LMStudio';
 
-export const MODEL_REGEX = /^\[Model: (.*?)-(.*?)\]\n\n/;
-
 export type ModelInfo = {
   name: string;
   provider: Provider;
@@ -22,6 +20,16 @@ export type ModelInfo = {
   description?: string;
   deprecated?: boolean;
 };
+
+export type ModelConfig = {
+  provider?: Provider;
+  model?: string;
+  apiKey?: string;
+  baseUrl?: string;
+  temperature?: number
+  topP?: number
+  topK?: number
+}
 
 // Sabit modeller
 const STATIC_MODELS: ModelInfo[] = [
@@ -36,11 +44,39 @@ const STATIC_MODELS: ModelInfo[] = [
 
   // OpenAI
   {
+    name: 'o3-mini',
+    label: 'o3-mini',
+    provider: 'OpenAI',
+    inputPrice: 1.10,
+    outputPrice: 4.40,
+  },
+  {
+    name: 'o1-mini',
+    label: 'o1-mini',
+    provider: 'OpenAI',
+    inputPrice: 1.10,
+    outputPrice: 4.40,
+  },
+  {
+    name: 'o1',
+    label: 'o1',
+    provider: 'OpenAI',
+    inputPrice: 15.00,
+    outputPrice: 60.00,
+  },
+  {
+    name: 'gpt-4o',
+    label: 'GPT-4o',
+    provider: 'OpenAI',
+    inputPrice: 2.50,
+    outputPrice: 10.00,
+  },
+  {
     name: 'gpt-4o-mini',
-    label: 'GPT-4 Mini',
+    label: 'GPT-4o Mini',
     provider: 'OpenAI',
     inputPrice: 0.150,
-    outputPrice: 0.075,
+    outputPrice: 0.60,
   },
   {
     name: 'gpt-4-turbo',
@@ -65,6 +101,34 @@ const STATIC_MODELS: ModelInfo[] = [
   },
 
   // Google
+  {
+    name: 'gemini-2.0-flash-thinking-exp-01-21',
+    label: 'Gemini 2.0 Flash Thinking Exp 01-21',
+    provider: 'Google',
+    inputPrice: 0.0,
+    outputPrice: 0.0,
+  },
+  {
+    name: 'gemini-2.0-pro-exp-02-05',
+    label: 'Gemini 2.0 Pro Exp 02-05',
+    provider: 'Google',
+    inputPrice: 0.0,
+    outputPrice: 0.0,
+  },
+  {
+    name: 'gemini-2.0-flash-lite-preview-02-05',
+    label: 'Gemini 2.0 Flash Lite Preview 02-05',
+    provider: 'Google',
+    inputPrice: 0.075,
+    outputPrice: 0.3,
+  },
+  {
+    name: 'gemini-2.0-flash',
+    label: 'Gemini 2.0 Flash',
+    provider: 'Google',
+    inputPrice: 0.10,
+    outputPrice: 0.40,
+  },
   {
     name: 'gemini-2.0-flash-exp',
     label: 'Gemini 2.0 Flash Exp',

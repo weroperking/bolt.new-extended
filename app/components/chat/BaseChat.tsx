@@ -12,8 +12,12 @@ import * as Select from "@radix-ui/react-select";
 import styles from './BaseChat.module.scss';
 import { PopoverHover } from '~/components/ui/PopoverHover';
 import { AnimatePresence, motion } from "framer-motion";
-import { type ModelInfo } from '~/utils/modelConstants';
+import { type ModelConfig, type ModelInfo } from '~/utils/modelConstants';
 import { debounce } from '~/utils/debounce';
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
+import { Label } from '@radix-ui/react-label';
+import { DropdownMenuSeparator } from '@radix-ui/react-dropdown-menu';
+import { SubMenu } from '~/components/sidebar/SubMenu.client';
 
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
@@ -31,6 +35,8 @@ interface BaseChatProps {
   model?: string;
   provider?: string;
   setProviderModel?: (provider: string, model: string) => void;
+  modelConfig: ModelConfig;
+  setModelConfig: (config: ModelConfig) => void;
 
   messageRef?: RefCallback<HTMLDivElement> | undefined;
   scrollRef?: RefCallback<HTMLDivElement> | undefined;
@@ -77,7 +83,7 @@ const ModelSelect = ({ chatStarted, model, provider, setProviderModel }: ModelSe
         const data: ModelInfo[] = await response.json();
         setFilteredModels(data);
       } catch (error) {
-        console.error('Model arama hatası:', error);
+        console.error('Model search error:', error);
       } finally {
         setIsLoading(false);
       }
@@ -101,7 +107,7 @@ const ModelSelect = ({ chatStarted, model, provider, setProviderModel }: ModelSe
         setProviderModel?.(provider, model)
       }}
     >
-      <Select.Trigger className="inline-flex items-center justify-center gap-1 px-2 py-1 text-sm rounded bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
+      <Select.Trigger className="inline-flex items-center justify-center gap-1 px-2 py-1 text-sm rounded bg-transparent hover:bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
         <Select.Value>
           {isLoading && <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-sm" />}
           {!isLoading && currentModel && (
@@ -180,6 +186,120 @@ const ModelSelect = ({ chatStarted, model, provider, setProviderModel }: ModelSe
   )
 }
 
+const ModelConfigDropdown = ({ modelConfig, setModelConfig }: { modelConfig: ModelConfig, setModelConfig: (config: ModelConfig) => void }) => {
+  if (!modelConfig) {
+    return (
+      <button className="flex items-center text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed" disabled>
+        <div className="i-mdi:settings text-sm text-red"></div>
+      </button>
+    )
+  }
+  return (
+    <DropdownMenuPrimitive.Root>
+      <DropdownMenuPrimitive.Trigger asChild>
+        <button
+          title="Model configuration"
+          className="flex items-center text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed"
+        >
+            <div className="i-mdi:settings text-sm"></div>
+        </button>
+      </DropdownMenuPrimitive.Trigger>
+      <DropdownMenuPrimitive.Portal>
+        <DropdownMenuPrimitive.Content
+          side={"right"}
+          align={"start"}
+          alignOffset={5}
+          className="z-max min-w-[8rem] p-2 overflow-hidden color-white rounded-md border border-bolt-elements-borderColor shadow-md bg-bolt-elements-background-depth-1"
+        >
+          <div className="flex flex-col gap-2 px-2 py-2">
+            <Label
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              API Key
+            </Label>
+            <input
+              name="apiKey"
+              type="password"
+              placeholder="API Key"
+              required={true}
+              defaultValue={modelConfig.apiKey}
+              onChange={(e: any) =>
+                setModelConfig({
+                  apiKey: e.target.value.length > 0 ? e.target.value : undefined
+                })
+              }
+              className="flex h-9 w-full px-3 py-1 rounded-md border border-bolt-elements-borderColor bg-transparent text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-item-backgroundAccent"
+            />
+
+            <DropdownMenuSeparator className="-mx-1 my-1 h-px bg-bolt-elements-borderColor" />
+
+            <Label
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Temperature
+            </Label>
+            <input
+              name="temperature"
+              type="number"
+              placeholder="Auto"
+              required={true}
+              defaultValue={modelConfig.temperature}
+              min={0}
+              max={2}
+              onChange={(e: any) =>
+                setModelConfig({
+                  temperature: e.target.value.length > 0 ? parseFloat(e.target.value) : undefined
+                })
+              }
+              className="flex h-9 w-full px-3 py-1 rounded-md border border-bolt-elements-borderColor bg-transparent text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-item-backgroundAccent"
+            />
+
+            <Label
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Top P
+            </Label>
+            <input
+              name="topP"
+              type="number"
+              placeholder="Auto"
+              required={true}
+              defaultValue={modelConfig.topP}
+              min={0}
+              max={1}
+              onChange={(e: any) =>
+                setModelConfig({
+                  topP: e.target.value.length > 0 ? parseFloat(e.target.value) : undefined
+                })
+              }
+              className="flex h-9 w-full px-3 py-1 rounded-md border border-bolt-elements-borderColor bg-transparent text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-item-backgroundAccent"
+            />
+
+            <Label
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Top K
+            </Label>
+            <input
+              name="topK"
+              type="number"
+              placeholder="Auto"
+              required={true}
+              defaultValue={modelConfig.topK}
+              onChange={(e: any) =>
+                setModelConfig({
+                  topK: e.target.value.length > 0 ? parseFloat(e.target.value) : undefined
+                })
+              }
+              className="flex h-9 w-full px-3 py-1 rounded-md border border-bolt-elements-borderColor bg-transparent text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-item-backgroundAccent"
+            />
+          </div>
+        </DropdownMenuPrimitive.Content>
+      </DropdownMenuPrimitive.Portal>
+    </DropdownMenuPrimitive.Root>
+  )
+}
+
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   (
     {
@@ -199,6 +319,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       model,
       provider,
       setProviderModel,
+      modelConfig = {},
+      setModelConfig = () => {},
 
       messageRef,
       scrollRef,
@@ -244,7 +366,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </motion.div>
           )}
         </AnimatePresence>
-        <ClientOnly>{() => <Menu />}</ClientOnly>
+        <ClientOnly>{() => <SubMenu /> }</ClientOnly>
+        <ClientOnly>{() => <Menu /> }</ClientOnly>
         <div ref={scrollRef} className="flex overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
@@ -337,6 +460,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         provider={provider}
                         setProviderModel={setProviderModel}
                       />
+
+                      <ModelConfigDropdown modelConfig={modelConfig} setModelConfig={setModelConfig} />
                     </div>
                   </div>
                   <textarea

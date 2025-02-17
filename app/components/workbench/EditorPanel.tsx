@@ -24,6 +24,7 @@ import { isMobile } from '~/utils/mobile';
 import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
 import { Terminal, type TerminalRef } from './terminal/Terminal';
+import React from 'react';
 
 interface EditorPanelProps {
   files?: FileMap;
@@ -132,16 +133,6 @@ export const EditorPanel = memo(
                 <PanelHeader>
                   <div className="i-ph:tree-structure-duotone shrink-0" />
                   Files
-
-                  <PanelHeaderButton
-                    className="ml-auto"
-                    onClick={() => {
-                      workbenchStore.downloadProject();
-                    }}
-                  >
-                    <div className="i-ph:download-duotone" />
-                    Download
-                  </PanelHeaderButton>
                 </PanelHeader>
                 <ScrollArea.Root type="always" className="h-full">
                   <ScrollArea.Viewport className="h-full">
@@ -221,40 +212,45 @@ export const EditorPanel = memo(
           <div className="h-full">
             <div className="bg-bolt-elements-terminals-background h-full flex flex-col">
               <div className="flex items-center bg-bolt-elements-background-depth-2 border-y border-bolt-elements-borderColor gap-1.5 min-h-[34px] p-2">
-                <button key="-1"
-                        className={classNames(
-                          'flex items-center text-sm cursor-pointer gap-1.5 px-3 py-2 h-full whitespace-nowrap rounded-full',
-                          {
-                            'bg-bolt-elements-terminals-buttonBackground text-bolt-elements-textPrimary': activeTerminal === -1,
-                            'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-terminals-buttonBackground':
-                              activeTerminal !== -1,
-                          },
-                        )}
-                        onClick={() => setActiveTerminal(-1)}
-                >
-                  <div className="i-bolt:logo-text?mask text-lg" />
-                  Bolt Console
-                </button>
                 {Array.from({ length: terminalCount }, (_, index) => {
                   const isActive = activeTerminal === index;
 
                   return (
-                    <button
-                      key={index}
-                      className={classNames(
-                        'flex items-center text-sm cursor-pointer gap-1.5 px-3 py-2 h-full whitespace-nowrap rounded-full',
-                        {
-                          'bg-bolt-elements-terminals-buttonBackground text-bolt-elements-textPrimary': isActive,
-                          'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-terminals-buttonBackground':
-                            !isActive,
-                        },
+                    <React.Fragment key={index}>
+                      {index == 0 ? (
+                        <button key={index}
+                                className={classNames(
+                                  'flex items-center text-sm cursor-pointer gap-1.5 px-3 py-2 h-full whitespace-nowrap rounded-full',
+                                  {
+                                    'bg-bolt-elements-terminals-buttonBackground text-bolt-elements-textPrimary': isActive,
+                                    'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-terminals-buttonBackground':
+                                      !isActive
+                                  },
+                                )}
+                                onClick={() => setActiveTerminal(index)}
+                        >
+                          <div className="i-bolt:logo-text?mask text-lg" />
+                          Bolt Terminal
+                        </button>
+                      ) : (
+                        <button
+                          key={index}
+                          className={classNames(
+                            'flex items-center text-sm cursor-pointer gap-1.5 px-3 py-2 h-full whitespace-nowrap rounded-full',
+                            {
+                              'bg-bolt-elements-terminals-buttonBackground text-bolt-elements-textPrimary': isActive,
+                              'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-terminals-buttonBackground':
+                                !isActive
+                            }
+                          )}
+                          onClick={() => setActiveTerminal(index)}
+                        >
+                          <div className="i-ph:terminal-window-duotone text-lg" />
+                          Terminal {terminalCount > 1 && index + 1}
+                        </button>
                       )}
-                      onClick={() => setActiveTerminal(index)}
-                    >
-                      <div className="i-ph:terminal-window-duotone text-lg" />
-                      Terminal {terminalCount > 1 && index + 1}
-                    </button>
-                  );
+                    </React.Fragment>
+                  )
                 })}
                 {terminalCount < MAX_TERMINALS && <IconButton icon="i-ph:plus" size="md" onClick={addTerminal} />}
                 <IconButton
@@ -268,7 +264,7 @@ export const EditorPanel = memo(
               <Terminal
                 key={-1}
                 className={classNames('h-full overflow-hidden', {
-                  hidden: activeTerminal !== -1,
+                  hidden: activeTerminal !== -1
                 })}
                 ref={(ref) => {
                   terminalRefs.current[-1] = ref;
@@ -281,20 +277,37 @@ export const EditorPanel = memo(
               {Array.from({ length: terminalCount }, (_, index) => {
                 const isActive = activeTerminal === index;
 
-                return (
-                  <Terminal
-                    key={index}
-                    className={classNames('h-full overflow-hidden', {
-                      hidden: !isActive,
-                    })}
-                    ref={(ref) => {
-                      terminalRefs.current.push(ref);
-                    }}
-                    onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal)}
-                    onTerminalResize={(cols, rows) => workbenchStore.onTerminalResize(cols, rows)}
-                    theme={theme}
-                  />
-                );
+                if (index === 0) {
+                  return (
+                    <Terminal
+                      key={index}
+                      className={classNames('h-full overflow-hidden', {
+                        hidden: !isActive,
+                      })}
+                      ref={(ref) => {
+                        terminalRefs.current.push(ref);
+                      }}
+                      onTerminalReady={(terminal) => workbenchStore.attachBoltTerminal(terminal)}
+                      onTerminalResize={(cols, rows) => workbenchStore.onTerminalResize(cols, rows)}
+                      theme={theme}
+                    />
+                  )
+                } else {
+                  return (
+                    <Terminal
+                      key={index}
+                      className={classNames('h-full overflow-hidden', {
+                        hidden: !isActive,
+                      })}
+                      ref={(ref) => {
+                        terminalRefs.current.push(ref);
+                      }}
+                      onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal)}
+                      onTerminalResize={(cols, rows) => workbenchStore.onTerminalResize(cols, rows)}
+                      theme={theme}
+                    />
+                  );
+                }
               })}
             </div>
           </div>

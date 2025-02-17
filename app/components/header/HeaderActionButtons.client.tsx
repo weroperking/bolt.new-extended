@@ -2,6 +2,8 @@ import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
+import { useState } from 'react';
+import { DeployButton } from '~/components/workbench/DeployButton';
 
 interface HeaderActionButtonsProps {}
 
@@ -12,7 +14,17 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const canHideChat = showWorkbench || !showChat;
 
   return (
-    <div className="flex">
+    <div className="flex gap-2">
+      <button
+        className="rounded-md text-xs px-4 py-2 bg-bolt-elements-button-secondary-background text-bolt-elements-button-secondary-text flex gap-1.7 items-center justify-center px-3 py-1.5 hover:text-bolt-elements-button-secondary-textHover hover:bg-bolt-elements-button-secondary-backgroundHover"
+        onClick={() => { workbenchStore.downloadProject(); }}
+      >
+        <div className="i-ph:download-duotone text-lg" />
+        Download
+      </button>
+
+      <DeployButton />
+
       <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden">
         <Button
           active={showChat}
