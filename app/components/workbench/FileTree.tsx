@@ -160,6 +160,7 @@ interface FolderProps {
 }
 
 function Folder({ folder: { depth, name }, collapsed, selected = false, onClick }: FolderProps) {
+  const folderIcon = getFileIcon(name, true, collapsed);
   return (
     <NodeButton
       className={classNames('group', {
@@ -168,10 +169,7 @@ function Folder({ folder: { depth, name }, collapsed, selected = false, onClick 
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
       })}
       depth={depth}
-      iconClasses={classNames({
-        'i-ph:caret-right scale-98': collapsed,
-        'i-ph:caret-down scale-98': !collapsed,
-      })}
+      iconClasses={folderIcon}
       onClick={onClick}
     >
       {name}
@@ -187,6 +185,7 @@ interface FileProps {
 }
 
 function File({ file: { depth, name }, onClick, selected, unsavedChanges = false }: FileProps) {
+  const fileIcon = getFileIcon(name, false, false);
   return (
     <NodeButton
       className={classNames('group', {
@@ -194,9 +193,7 @@ function File({ file: { depth, name }, onClick, selected, unsavedChanges = false
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
       })}
       depth={depth}
-      iconClasses={classNames('i-ph:file-duotone scale-98', {
-        'group-hover:text-bolt-elements-item-contentActive': !selected,
-      })}
+      iconClasses={fileIcon}
       onClick={onClick}
     >
       <div
@@ -209,6 +206,66 @@ function File({ file: { depth, name }, onClick, selected, unsavedChanges = false
       </div>
     </NodeButton>
   );
+}
+
+function getFileIcon(fileName: string, isFolder: boolean, isCollapsed: boolean) {
+  const file = fileName.toLowerCase();
+  if (isFolder) {
+    const icon = isCollapsed ? 'i-mdi:folder' : 'i-mdi:folder-open';
+    const folderColorMap: Record<string, string> = {
+      src: 'text-blue-500',
+      components: 'text-green-500',
+      pages: 'text-red-500',
+      assets: 'text-yellow-500',
+      styles: 'text-pink-500',
+      public: 'text-purple-500',
+      app: 'text-orange-500',
+      utils: 'text-teal-500',
+      hooks: 'text-cyan-500',
+      lib: 'text-lime-500',
+      config: 'text-amber-500',
+      tests: 'text-indigo-500',
+      routes: 'text-rose-500'
+    }
+
+    const color = folderColorMap[file] || 'text-gray-500';
+    console.log(`${icon} ${color}`);
+    return `${icon} ${color}`;
+  }
+
+  const ext = file.split('.').pop();
+  const iconMap: Record<string, string> = {
+    js: 'i-mdi:language-javascript text-yellow-400',
+    jsx: 'i-mdi:language-javascript text-yellow-400',
+    ts: 'i-mdi:language-typescript text-blue-400',
+    tsx: 'i-mdi:language-typescript text-blue-400',
+    css: 'i-mdi:language-css3 text-blue-400',
+    sass: 'i-mdi:sass text-pink-400',
+    scss: 'i-mdi:sass text-pink-400',
+    html: 'i-mdi:language-html5 text-red-400',
+    json: 'i-mdi:file-document text-blue-400',
+    md: 'i-mdi:file-document text-blue-400',
+    txt: 'i-mdi:file-document text-blue-400',
+    svg: 'i-mdi:file-image text-green-400',
+    png: 'i-mdi:file-image text-green-400',
+    jpg: 'i-mdi:file-image text-green-400',
+    jpeg: 'i-mdi:file-image text-green-400',
+    gif: 'i-mdi:file-image text-green-400',
+    yaml: 'i-mdi:file-document text-blue-400',
+    yml: 'i-mdi:file-document text-blue-400',
+    php: 'i-mdi:language-php text-purple-400',
+    py: 'i-mdi:language-python text-yellow-400',
+    rb: 'i-mdi:language-ruby text-red-400',
+    java: 'i-mdi:language-java text-red-400',
+    sql: 'i-mdi:database text-blue-400',
+    env: 'i-mdi:file-cog-outline text-yellow-600',
+    'webpack.config.js': 'i-mdi:webpack text-blue-300',
+    'package.json': 'i-mdi:nodejs text-green-600',
+    'yarn.lock': 'i-mdi:package-variant-closed text-blue-400',
+    gitignore: 'i-mdi:git text-orange-600',
+  };
+
+  return iconMap[ext || ""] ?? 'i-mdi:file-document text-blue-400';
 }
 
 interface ButtonProps {
