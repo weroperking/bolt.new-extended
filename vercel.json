@@ -1,0 +1,1 @@
+{"buildCommand": "pnpm run build","devCommand": "pnpm run dev","framework": "remix","installCommand": "pnpm install --no-frozen-lockfile","regions": ["iad1"]}
